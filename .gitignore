@@ -1,0 +1,6 @@
+__pycache__
+
+nlp/semantic_textual_similarity/bert.opt.quant.onnx
+nlp/stanford-corenlp-4.2.2
+
+.env
