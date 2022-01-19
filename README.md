@@ -28,11 +28,11 @@
    If you want to quantize the model from scratch, then you can run the command `python3 nlp/semantic_textual_similarity/make_quantized_bert_model.py`. However, this will take time and is not reccomended.
 
 ## Getting Started
-Start the Stanford CoreNLP Parser in the project directory by running the following command:
+Start the Stanford CoreNLP Parser by running the following command in the project directory:
 ```
 ./runcorenlp.sh
 ```
-In another terminal, run the command below:
+In another terminal, run the command below, also in the project directory:
 ```
 python3 main.py
 ```
@@ -43,3 +43,7 @@ python3 main.py
 * [x] Question Detection
 * [x] Suggestion Detection
 * [ ] Language Translation & Transliteration
+
+## Credits
+StanfordCoreNLP Parser
+MRPC dataset

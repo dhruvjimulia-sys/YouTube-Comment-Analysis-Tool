@@ -93,7 +93,14 @@ def process_comments(list_of_comments):
             neutrals.append(comment)
     classes = (suggestions, questions, positives, negatives, neutrals)
     final_categories_and_classes = [distribute_by_paraphrase(class_list) for class_list in classes]
-    return turn_deques_into_lists(final_categories_and_classes)
+    final_categories_and_classes = turn_deques_into_lists(final_categories_and_classes)
+    return {
+        'suggestions': final_categories_and_classes[0],
+        'questions': final_categories_and_classes[1],
+        'positives': final_categories_and_classes[2],
+        'negatives': final_categories_and_classes[3],
+        'neutral': final_categories_and_classes[4]
+    }
 
 if __name__ == '__main__':
     load_models()

@@ -1,4 +1,4 @@
-from .main import process_comments
+from main import process_comments
 import json
 from dotenv import load_dotenv
 from os import getenv
@@ -7,7 +7,7 @@ import requests
 load_dotenv()
 YOUTUBE_API_SECRET_KEY = getenv("YOUTUBE_API_SECRET_KEY")
 
-def getuploads(channel_id):
+def get_uploads(channel_id):
     response = requests.get(f"https://youtube.googleapis.com/youtube/v3/channels?part=snippet%2CcontentDetails%2Cstatistics&maxResults=1&id={channel_id}&key={YOUTUBE_API_SECRET_KEY}")
     json_data = json.loads(response.content.decode('utf-8'))
     uploads_playlist_id = json_data['items'][0]['contentDetails']['relatedPlaylists']['uploads']
@@ -15,9 +15,10 @@ def getuploads(channel_id):
     uploads_playlist_json_data = json.loads(uploads_playlist.content.decode('utf-8'))
     return uploads_playlist_json_data
 
-def getcommentsfromvideo(video_id):
+def get_comments_from_video(video_id):
     response = requests.get(f"https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&maxResults=100&videoId={video_id}&key={YOUTUBE_API_SECRET_KEY}")
     json_data = json.loads(response.content.decode('utf-8'))
+    print(json_data)
     next_page_token =  json_data['nextPageToken'] if 'nextPageToken' in json_data else ""
     all_comments_text = []
     without_replies_comment_counter = json_data['pageInfo']['totalResults']
@@ -48,3 +49,5 @@ def getcommentsfromvideo(video_id):
         "comment_count_with_replies": with_replies_comment_counter,
     }
 
+if __name__ == '__main__':
+    print(get_comments_from_video("BTxRg2cGLME"))
