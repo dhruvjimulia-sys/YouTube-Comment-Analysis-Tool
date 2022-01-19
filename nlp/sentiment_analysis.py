@@ -22,7 +22,6 @@ def load_sentiment_model():
     nlp = pipeline("sentiment-analysis")
     tokenizer = AutoTokenizer.from_pretrained("cardiffnlp/twitter-roberta-base-sentiment")
     model = AutoModelForSequenceClassification.from_pretrained("cardiffnlp/twitter-roberta-base-sentiment")
-    print("Loaded Sentiment Analysis Model")
 
 def sentiment(sentence, neutral_threshold):
     for positive_emoji in positive_emojis:

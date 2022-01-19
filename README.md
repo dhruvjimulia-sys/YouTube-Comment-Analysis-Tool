@@ -32,11 +32,16 @@ Start the Stanford CoreNLP Parser by running the following command in the projec
 ```
 ./runcorenlp.sh
 ```
-In another terminal, run the command below, also in the project directory:
+Now to run the project, you need to execute the `main.py` script.
+
+If there are no further arguments, the script will analyze the comments written in the examples.txt file in the project directory:
 ```
 python3 main.py
 ```
-
+However, in order to process comments from real YouTube videos, you need to provide the video id of the video as a command line argument. The video id of a video can be obtained by the last section of a URL after the `v=`. For example, the video https://www.youtube.com/watch?v=0oSsLbh_Kv4 has video id `0oSsLbh_Kv4` and the following command will be used to analyze the comments of that video:
+```
+python3 main.py 0oSsLbh_Kv4
+```
 ## Social Media Comments Analysis TODO
 * [x] Sentiment Analysis
 * [x] Sematic Textual Similarity
@@ -45,5 +50,6 @@ python3 main.py
 * [ ] Language Translation & Transliteration
 
 ## Credits
-StanfordCoreNLP Parser
-MRPC dataset
+POS tagging was implemented using the StanfordCoreNLP Parser.
+Any pretrained transformers are from the HuggingFace Transformers Hub.
+In order to get YouTube comments, the YouTube Data API was used.

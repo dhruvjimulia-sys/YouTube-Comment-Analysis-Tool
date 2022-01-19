@@ -28,7 +28,7 @@ def get_chunks(tagged_sent):
 
 def is_clause_imperative(clauses):
     for clause in clauses:
-        if clause[-1][0] != "?":
+        if len(clause) != 0 and len(clause[-1]) != 0 and clause[-1][0] != "?":
             if clause[0][1] == "VB" or clause[0][1] == "MD":
                 return True
             else:

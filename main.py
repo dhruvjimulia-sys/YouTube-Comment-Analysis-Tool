@@ -7,6 +7,14 @@ from nlp.sentiment_analysis import sentiment, load_sentiment_model
 from collections import deque
 import pandas as pd
 import numpy as np
+import json
+from dotenv import load_dotenv
+from os import getenv
+import requests
+import sys
+
+load_dotenv()
+YOUTUBE_API_SECRET_KEY = getenv("YOUTUBE_API_SECRET_KEY")
 
 def load_models():
     load_paraphrase_model()
@@ -72,6 +80,7 @@ def turn_deques_into_lists(final_categories_and_classes):
 # 5. If not neutral, then sentiment analysis to classify positive/negative
 # 6. Once in categories, find paraphrases
 def process_comments(list_of_comments):
+    print("Processing Comments")
     suggestions = []
     questions = []
     positives = []
@@ -102,6 +111,44 @@ def process_comments(list_of_comments):
         'neutral': final_categories_and_classes[4]
     }
 
+def get_comments_from_video(video_id):
+    response = requests.get(f"https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&maxResults=100&videoId={video_id}&key={YOUTUBE_API_SECRET_KEY}")
+    json_data = json.loads(response.content.decode('utf-8'))
+    next_page_token =  json_data['nextPageToken'] if 'nextPageToken' in json_data else ""
+    all_comments_text = []
+    without_replies_comment_counter = json_data['pageInfo']['totalResults']
+    with_replies_comment_counter = 0
+
+    while 'nextPageToken' in json_data:
+      for item in json_data['items']:
+        all_comments_text.append(item['snippet']['topLevelComment']['snippet']['textOriginal'])
+        with_replies_comment_counter = with_replies_comment_counter + 1
+        with_replies_comment_counter += item['snippet']['totalReplyCount']
+
+      response = requests.get(f"https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&maxResults=100&videoId={video_id}&key={YOUTUBE_API_SECRET_KEY}&pageToken={next_page_token}")
+      json_data = json.loads(response.content.decode('utf-8'))
+
+      without_replies_comment_counter += json_data['pageInfo']['totalResults']
+      if 'nextPageToken' in json_data: next_page_token = json_data['nextPageToken']
+
+    for item in json_data['items']:
+        all_comments_text.append(item['snippet']['topLevelComment']['snippet']['textOriginal'])
+        with_replies_comment_counter = with_replies_comment_counter + 1
+        with_replies_comment_counter += item['snippet']['totalReplyCount']
+
+    return {
+        "comments": all_comments_text,
+        "comment_count_without_replies": without_replies_comment_counter,
+        "comment_count_with_replies": with_replies_comment_counter,
+    }
+
+with open("examples.txt", "r") as f:
+    example_comments = map(lambda x:x.strip(), f.readlines())
+
 if __name__ == '__main__':
     load_models()
-    print(process_comments(["You should make more videos on injustice", "I would suggest you to make videos about the injustices in India", "Why are you making videos like this", "You are horrible", "Honestly you make my day", "Make more vids on the Indian injustices", "You are amazing"]))
+    if (len(sys.argv) == 1):
+       processed_comments = process_comments(example_comments)
+    else:
+       processed_comments = process_comments(get_comments_from_video(sys.argv[1])['comments'])
+    print(json.dumps(processed_comments, indent=4))

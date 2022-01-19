@@ -15,14 +15,13 @@ tokenizer = session = None
 
 # Main function to load model given model path
 def load_paraphrase_model():
-    print("Loading Paraphrase Model")
+    print("Loading Semantic Textual Similarity Model")
     global tokenizer, session
     model_path = "./nlp/semantic_textual_similarity/bert.opt.quant.onnx"
     tokenizer = BertTokenizer.from_pretrained("./nlp/semantic_textual_similarity/bert-base-cased-finetuned-mprc/", do_lower_case=configs.do_lower_case)
     sess_options = onnxruntime.SessionOptions()
     sess_options.graph_optimization_level = onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL
     session = onnxruntime.InferenceSession(model_path, sess_options)
-    print("Loaded Paraphrase Model")
 
 def remove_adj_duplicates(strin):
     n = len(strin)
@@ -42,6 +41,7 @@ def preprocess(strin):
     strin = strin.lower()
     strin = strin.translate(str.maketrans('', '', string.punctuation))
     strin = remove_adj_duplicates(strin)
+    if strin == None: return []
     return set([word for word in strin.split(" ") if not word in STOP_WORDS])
 
 def simple_paraphrase_check(sentence_1, sentence_2):
