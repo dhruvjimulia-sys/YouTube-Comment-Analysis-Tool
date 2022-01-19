@@ -1,4 +1,4 @@
-# Social Media Comment Analysis Tool
+# YouTube Comment Analysis Tool
 
 ## Prerequisites
 1. Firstly, in order to run this program, you need to install [Java](https://www.java.com/en/download/manual.jsp) and [Python](https://www.python.org/downloads/). This script was tested on Python version 3.8.10 and Java version 17.0.1.
