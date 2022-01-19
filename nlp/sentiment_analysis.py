@@ -34,7 +34,7 @@ def sentiment(sentence, neutral_threshold):
     tokenized = tokenizer.encode_plus(sentence, return_tensors="pt")
     logits = model(**tokenized)[0]
     results = softmax(logits, dim=1).tolist()[0]
-    if classes[np.argmax(results)] == "NEUTRAL" and results[np.argmax(results)] > neutral_threshold:
+    if results[1] > neutral_threshold:
         return "NEUTRAL"
     return nlp(sentence)[0]["label"]
 

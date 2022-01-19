@@ -81,6 +81,11 @@ def turn_deques_into_lists(final_categories_and_classes):
 # 6. Once in categories, find paraphrases
 def process_comments(list_of_comments):
     print("Processing Comments")
+    
+    # neutral_threshold is a number between 0.0-1.0
+    # the lower the number, the higher the probability of getting a neutral
+    neutral_threshold = 0.25
+    
     suggestions = []
     questions = []
     positives = []
@@ -93,7 +98,7 @@ def process_comments(list_of_comments):
         if is_question(comment):
             questions.append(comment)
             continue
-        predicted_sentiment = sentiment(comment, 0.6)
+        predicted_sentiment = sentiment(comment, neutral_threshold)
         if predicted_sentiment == 'POSITIVE':
             positives.append(comment)
         elif predicted_sentiment == 'NEGATIVE':
