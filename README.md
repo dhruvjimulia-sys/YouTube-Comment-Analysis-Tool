@@ -20,12 +20,19 @@
    ```
    echo "YOUTUBE_API_SECRET_KEY = {API_KEY}" >> .env
    ```
-5. Install quantized bert model in nlp/semantic_textual_similarity
+5. Since we will need to compare every comment against every other for semantic similarity in order to segregate similar comments into categories, the computation required to assess the semantic similarity should be fast. In order to do this, we can quantize the pretrained BERT model finetuned on the MRPC semantic textual similarity dataset. The quantized BERT model can be directly installed in the correct directory by running the `installquantizedbert.sh` script in the project directory:
    ```
-   python3 make_quantized_bert_model.py
+   ./installquantizedbert.sh
    ```
+   Note: Ensure that the pip packages are installed before running this script because this script uses `gdown`, a pip package.
+   If you want to quantize the model from scratch, then you can run the command `python3 nlp/semantic_textual_similarity/make_quantized_bert_model.py`. However, this will take time and is not reccomended.
 
 ## Getting Started
+Start the Stanford CoreNLP Parser in the project directory by running the following command:
+```
+./runcorenlp.sh
+```
+In another terminal, run the command below:
 ```
 python3 main.py
 ```
