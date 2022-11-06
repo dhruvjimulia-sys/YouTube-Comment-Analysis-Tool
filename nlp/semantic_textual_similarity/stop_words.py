@@ -1,4 +1,7 @@
-# STOP_WORD list adapted from spacy.lang.en.stop_words.STOP_WORDS
+# List of stop words (words that are not considered relevant
+# for semantic textual similarity or sentiment analysis)
+# Adapted from spacy.lang.en.stop_words.STOP_WORDS
+
 STOP_WORDS = set(['or', 'wherever', 'have', 'are', 'thus', 'be', 'moreover', 'am', 'on', 'too', 'this', 'the', 'several', 
 'many', 'even', 'but', 'anything', 'became', 'them', 'up', 'without', 'put', 'after', 'take', 'mostly', 'quite', 'somehow',
 'least', 'hereby', 'has', 'very', 'amount', 'beyond', 'before', 'they', 'own', 'upon', 'sometime', 'anywhere', 'below',
