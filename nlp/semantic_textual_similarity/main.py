@@ -1,5 +1,6 @@
-# Paraphrase Detection: Tested
-# predict_paraphrase, load_paraphrase_model, simple_paraphrase_check, predict_onnx
+# This file defines the functions to determine if two sentences
+# are paraphrases of each other
+
 import pandas as pd
 import onnxruntime
 from torch.utils.data import (DataLoader, SequentialSampler, TensorDataset)
@@ -13,30 +14,33 @@ import string
 
 tokenizer = session = None
 
-# Main function to load model given model path
+# Loads the model used for paraphrase detection
 def load_paraphrase_model():
     print("Loading Semantic Textual Similarity Model")
     global tokenizer, session
     model_path = "./nlp/semantic_textual_similarity/bert.opt.quant.onnx"
-    tokenizer = BertTokenizer.from_pretrained("./nlp/semantic_textual_similarity/bert-base-cased-finetuned-mprc/", do_lower_case=configs.do_lower_case)
+    tokenizer_path = "./nlp/semantic_textual_similarity/bert-base-cased-finetuned-mprc/"
+    tokenizer = BertTokenizer.from_pretrained(tokenizer_path, do_lower_case=configs.do_lower_case)
     sess_options = onnxruntime.SessionOptions()
     sess_options.graph_optimization_level = onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL
     session = onnxruntime.InferenceSession(model_path, sess_options)
 
+# Function that takes a string and returns another string with
+# duplicate words removed. Used by function preprocess defined below
 def remove_adj_duplicates(strin):
     n = len(strin)
     if n == 1: return
 
-    j = - 1
+    j = -1
     new_string_arr = []
-
     for i in range(n):
         if (strin[j] != strin[i]):
             j = i
             new_string_arr.append(strin[i])
     return ''.join(new_string_arr)
 
-# Makes string lowercase and removes punctuation + duplicates + stopwords
+# Preprocesses a string by making it lowercase, removing punctuation,
+# duplicates and stopwords
 def preprocess(strin):
     strin = strin.lower()
     strin = strin.translate(str.maketrans('', '', string.punctuation))
@@ -44,33 +48,34 @@ def preprocess(strin):
     if strin == None: return []
     return set([word for word in strin.split(" ") if not word in STOP_WORDS])
 
+# Function that simply checks whether two strings are identical after
+# basic preprocessing, as defined in preprocess
 def simple_paraphrase_check(sentence_1, sentence_2):
     processed_sentence_1 = preprocess(sentence_1)
     processed_sentence_2 = preprocess(sentence_2)
     if processed_sentence_1 == processed_sentence_2 or (len(processed_sentence_1) == 0 and len(processed_sentence_2) == 0): return True
     return False
 
-def predict_onnx(data):
+# Function that uses the paraphrase detection model to 
+# check whether two strings are paraphrases of each other.
+# Expects a DataFrame with the columns 'first_sentence' and 'second_sentence'
+# Returns a list of boolean values which has a True entry if and only if the
+# corresponding 'first_sentence' and 'second_sentence' are paraphrases of each other
+def model_paraphrase_check(data):
     global session
-
     eval_dataset = load_data_to_be_predicted(data)
-
     eval_sampler = SequentialSampler(eval_dataset)
     eval_dataloader = DataLoader(eval_dataset, sampler=eval_sampler, batch_size=configs.eval_batch_size)
-
     preds = None
-    
     for batch in eval_dataloader:
-        # start = time()
         batch = tuple(t.detach().cpu().numpy() for t in batch)
         ort_inputs = {'input_ids':  batch[0], 'input_mask': batch[1], 'segment_ids': batch[2]}
         logits = np.reshape(session.run(None, ort_inputs), (-1,2))
         preds = logits if preds is None else np.append(preds, logits, axis=0)
-        # end = time()
-        # print(f"Prediction time: {end - start}")
     return np.argmax(preds, axis=1)
-    # return preds
 
+# Merges predictions from the simple paraphrase check and model paraphrase check 
+# (both functions defined above). This function is used in predict_paraphrase
 def merge_predictions(boolean_list, need_transformer_values):
     merged = np.empty((len(boolean_list)))
     i = 0
@@ -82,14 +87,18 @@ def merge_predictions(boolean_list, need_transformer_values):
             i = i + 1
     return merged
 
-# Main predict function for paraphrase detection
+# Given a DataFrame with columns 'first_senetence' and 'second_sentence',
+# returns a boolean Pandas Series such that an entry in the returned boolean series
+# is True if and only if 'first_sentence' and 'second_sentence' are identified as paraphrases
 def predict_paraphrase(data):
-    # False indicates series paraphrase by simple check, True indicates otherwise
+    # For 'boolean_series' defined below, False indicates , True indicates otherwise
     boolean_series = data.apply(func = lambda row_array : not simple_paraphrase_check(row_array[0], row_array[1]), axis=1, raw=True)
     need_transformer = data[boolean_series]
-    need_transformer_values = predict_onnx(need_transformer)
+    need_transformer_values = model_paraphrase_check(need_transformer)
     return merge_predictions(boolean_series.to_numpy(), need_transformer_values)
 
+# Tokenizes input dataframe so that it can be used as input to the semantic similarity model
+# This function is used in the model_paraphrase_check function above
 def load_data_to_be_predicted(data):
     features = tokenizer(list(data['first_sentence']), list(data['second_sentence']), padding=True)
 
@@ -102,10 +111,8 @@ def load_data_to_be_predicted(data):
 
 if __name__ == '__main__':
     load_paraphrase_model()
-    # Data is a list of tuples
     data = pd.DataFrame(data=[("The company HuggingFace is based in New York City", "HuggingFace's headquarters are situated in Manhattan"),
             ("I really liked the way the teacher explained the concepts", "Apples are good for health."),
             ("Apples are good for health", "Apples are good for health")]
             , columns=['first_sentence', 'second_sentence'])
-    
     print(predict_paraphrase(data))

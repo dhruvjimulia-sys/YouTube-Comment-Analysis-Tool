@@ -1,8 +1,11 @@
+# This is the main file which analyzes comments of a YouTube video
+# This file imports relevant functions from files in the nlp/ directory
+# and uses them to solve the larger problem of processing YouTube Comments
 
-from nlp.semantic_textual_similarity.paraphrase_detection_quantized_bert import predict_paraphrase, load_paraphrase_model, simple_paraphrase_check, predict_onnx
+from nlp.semantic_textual_similarity.main import predict_paraphrase, load_paraphrase_model, simple_paraphrase_check, model_paraphrase_check
 from nlp.suggestion_detection.main import is_suggestion
-from nlp.question_detection import is_question
-from nlp.sentiment_analysis import sentiment, load_sentiment_model
+from nlp.question_detection.main import is_question
+from nlp.sentiment_analysis.main import sentiment, load_sentiment_model
 
 from collections import deque
 import pandas as pd
@@ -13,29 +16,34 @@ from os import getenv
 import requests
 import sys
 
+# Loads YOUTUBE_API_SECRET_KEY stored in .env file
 load_dotenv()
 YOUTUBE_API_SECRET_KEY = getenv("YOUTUBE_API_SECRET_KEY")
 
+# Loads the sentiment analysis model and the semantic similarity model
 def load_models():
     load_paraphrase_model()
     load_sentiment_model()
 
-def distribute_by_paraphrase(class_list):
+# Given a list of comments, partitions the comments into categories
+# such that one category contains comments that are semantically similar
+# Returns the comments, divided into categories
+def distribute_by_paraphrase(comments):
     categories = []
     first_comments_exception = False
-    for comment in class_list:
+    for comment in comments:
         if first_comments_exception:
             first_comments_exception = False
             continue
         if not categories:
-            if len(class_list) == 0:
+            if len(comments) == 0:
                 break
-            elif len(class_list) == 1:
+            elif len(comments) == 1:
                 categories.append(deque([comment]))
             else:
                 first_comments_exception = True
-                curr_comment = class_list[0]
-                next_comment = class_list[1]
+                curr_comment = comments[0]
+                next_comment = comments[1]
                 if predict_paraphrase(pd.DataFrame(data=[(curr_comment, next_comment)], columns=['first_sentence', 'second_sentence']))[0] == 1:
                     categories.append(deque([curr_comment, next_comment]))
                     continue
@@ -45,7 +53,7 @@ def distribute_by_paraphrase(class_list):
         else:
             done_adding = False
             
-            # Simple paraphrase check with all
+            # Since the simple 
             for category in categories:
                 for category_comment in category:
                     if simple_paraphrase_check(category_comment, comment):
@@ -56,7 +64,7 @@ def distribute_by_paraphrase(class_list):
             
             # predict_onnx with particular
             comparisons = pd.DataFrame(data=((category[0], comment) for category in categories), columns=['first_sentence', 'second_sentence'])
-            comparison_results = predict_onnx(comparisons)
+            comparison_results = model_paraphrase_check(comparisons)
             max_index = np.argmax(comparison_results)
             max_value = comparison_results[max_index]
 
@@ -66,24 +74,26 @@ def distribute_by_paraphrase(class_list):
                 categories[max_index].append(comment)
     return categories
 
+# Highly specialized function to convert list of deques into a list
+# of lists. This function is used by process_comments just before
+# returning the result so the result is JSON serializable 
 def turn_deques_into_lists(final_categories_and_classes):
     for class_item in final_categories_and_classes:
         for index, category in enumerate(class_item):
             class_item[index] = list(category)
     return final_categories_and_classes
 
-# Comment Processing Pipeline:
-# 1. Translate + Transliterate
-# 2. Check for Suggestions
-# 3. Check for Questions (which are not suggestions)
-# 4. If prob of neutral from RoBERTa model > threshold
-# 5. If not neutral, then sentiment analysis to classify positive/negative
-# 6. Once in categories, find paraphrases
+# Returns dictionary representing the processed comments, given a list of
+# comments. In this function, we check for suggestions, check for questions,
+# perform sentiment analysis, and categorize the comments into categories so
+# that comments that are semantically similar are kept in the same category
+# Finally, we return the processed comments as a dictionary
 def process_comments(list_of_comments):
     print("Processing Comments")
     
-    # neutral_threshold is a number between 0.0-1.0
-    # the lower the number, the higher the probability of getting a neutral
+    # We define 'neutral_threshold', a number greater than or equal to 0 and
+    # less than or equal to 1. The lower this 'neutral_threashold', the higher
+    # the probability of getting a neutral sentiment result
     neutral_threshold = 0.25
     
     suggestions = []
@@ -105,8 +115,8 @@ def process_comments(list_of_comments):
             negatives.append(comment)
         else:
             neutrals.append(comment)
-    classes = (suggestions, questions, positives, negatives, neutrals)
-    final_categories_and_classes = [distribute_by_paraphrase(class_list) for class_list in classes]
+    comments_by_class = (suggestions, questions, positives, negatives, neutrals)
+    final_categories_and_classes = [distribute_by_paraphrase(class_comments) for class_comments in comments_by_class]
     final_categories_and_classes = turn_deques_into_lists(final_categories_and_classes)
     return {
         'suggestions': final_categories_and_classes[0],
@@ -116,6 +126,8 @@ def process_comments(list_of_comments):
         'neutral': final_categories_and_classes[4]
     }
 
+# Retrieves all comments from a video given a video id
+# The video id is the last part of any URL to a YouTube video
 def get_comments_from_video(video_id):
     response = requests.get(f"https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&maxResults=100&videoId={video_id}&key={YOUTUBE_API_SECRET_KEY}")
     json_data = json.loads(response.content.decode('utf-8'))
@@ -147,13 +159,13 @@ def get_comments_from_video(video_id):
         "comment_count_with_replies": with_replies_comment_counter,
     }
 
-with open("examples.txt", "r") as f:
-    example_comments = map(lambda x:x.strip(), f.readlines())
-
 if __name__ == '__main__':
     load_models()
     if (len(sys.argv) == 1):
-       processed_comments = process_comments(example_comments)
+        example_comments = []
+        with open("examples.txt", "r") as f:
+            example_comments = map(lambda x:x.strip(), f.readlines())
+        processed_comments = process_comments(example_comments)
     else:
        processed_comments = process_comments(get_comments_from_video(sys.argv[1])['comments'])
     print(json.dumps(processed_comments, indent=4))

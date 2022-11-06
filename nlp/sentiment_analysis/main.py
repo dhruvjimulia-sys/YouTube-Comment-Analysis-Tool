@@ -1,5 +1,5 @@
-# Tested: Sentiment Analysis
-# Important functions: load_sentiment_model and sentiment
+# This file defines the functions to determine the sentiment of a sentence
+
 from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
 from torch import softmax
 import numpy as np
@@ -9,13 +9,12 @@ nlp = None
 tokenizer = None
 model = None
 
-classes = ["POSITIVE", "NEUTRAL", "NEGATIVE"]
-
-positive_emojis = ("😂", "❤", "😘", "💕", "👍", "🙌", "😍", "🤣", "💖")
+# Defines positive and negative emoticons to quickly short circuit computation
+# for sentiment
+positive_emojis = ("😂", "👍", "🙌", "🤣")
 negative_emojis = ("😒", "😑", "🥱", "😕")
-joke_indicators = ("\"", ":", "nobody:", "am i a joke to you", "hold my")
 
-# Loading takes 30 seconds
+# Loads sentiment analysis model
 def load_sentiment_model():
     print("Loading Sentiment Analysis Model")
     global nlp, tokenizer, model
@@ -23,13 +22,16 @@ def load_sentiment_model():
     tokenizer = AutoTokenizer.from_pretrained("cardiffnlp/twitter-roberta-base-sentiment")
     model = AutoModelForSequenceClassification.from_pretrained("cardiffnlp/twitter-roberta-base-sentiment")
 
+# Returns sentiment of sentence given the sentence
+# and a value 0 < neutral_threashold < 1 that decides
+# how often the function returns neutral. The higher the
+# value, the lower the chance of a sentence being classified
+# as neutral
 def sentiment(sentence, neutral_threshold):
     for positive_emoji in positive_emojis:
         if positive_emoji in sentence: return "POSITIVE"
     for negative_emoji in negative_emojis:
         if negative_emoji in sentence: return "NEGATIVE"
-    for joke_indicator in joke_indicators:
-        if joke_indicator in sentence: return "POSITIVE"
     
     tokenized = tokenizer.encode_plus(sentence, return_tensors="pt")
     logits = model(**tokenized)[0]

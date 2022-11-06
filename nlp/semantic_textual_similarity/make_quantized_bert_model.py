@@ -1,3 +1,8 @@
+# This file creates, from scratch, the quantized BERT model for semantic similarity
+# Since this is time consuming, a script in the project directory,
+# 'installquantizedbert.sh', was created to directly download this quantized model,
+# as explained in the README.md in the project directory
+
 from __future__ import absolute_import, division, print_function
 import logging
 import numpy as np

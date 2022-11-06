@@ -32,7 +32,7 @@ Start the Stanford CoreNLP Parser by running the following command in the projec
 ```
 ./runcorenlp.sh
 ```
-Now to run the project, you need to execute the `main.py` script.
+Now to run the project, you need to execute the `main.py` script in another terminal.
 
 If there are no further arguments, the script will analyze the comments written in the `examples.txt` file in the project directory:
 ```
